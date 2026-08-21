@@ -27,12 +27,11 @@ JAE DECRE
 JB NEXTNUM
 DECRE:
 DEC BX
-MOV WORD[INDEX],  BX
 MOV DX, 5
 SUB DX, WORD[INDEX]
 MOV WORD[INDEX], DX ;WE FINALLY HAVE THE VALUE WE'LL RAISE TEN TO THE POWER OF AND THEN MULTIPLY EACH DIGIT BY IT :)
 MOV AX,WORD[N+BX]
-MOV WORD[C], AX
+MOV  WORD[C], AX
 
 CMP WORD[C], 'q'
 JE AD
@@ -55,7 +54,7 @@ MOV AX, DX
 MOV CX, 10
 MUL CX
 MOV DX, AX
-DEC WORD[COUNT]
+DEC BYTE[COUNT]
 JMP POWEROF
 DONE_RAISING:
 MOV CX,AX
@@ -208,8 +207,80 @@ MOV WORD[TOTAL+BX],CX
 MOV WORD[MOD],1
 JMP DO
 
- CONV:
+CONV:
+    MOV BX, 0                   ; Start reading from TOTAL slot index 0
+
+.slot_loop:
+    CMP BX, 10                  ; 5 word slots * 2 bytes = 10 total bytes limits
+    JAE .finish_calc            ; When all 5 slots are printed, wrap up!
+
+    ; 1. Load the raw dynamic calculation number out of your word slot
+    XOR AX, AX
+    MOV AX, WORD [TOTAL + BX]   ; Pulls the actual calculated value (e.g., 105 or 0)
     
+    ; 🛡️ QUICK ZERO CHECK: If the slot is exactly 0, just print '0' and move on
+    CMP AX, 0
+    JNE .initialize_division
+    MOV AH, 0X0E
+    MOV AL, '0'
+    INT 0X10
+    JMP .next_slot
+
+.initialize_division:
+    PUSH BX                     ; 🛡️ Save our master TOTAL array index pointer on the stack
+    
+    ; Setup our local temporary string buffer pointer at the far right edge
+    MOV SI, 4                   ; Max 5 digits per slot (indices 0,1,2,3,4)
+    MOV CX, 10                  ; Base-10 division constant
+
+.divide_digits:
+    CMP AX, 0
+    JE .print_extracted_string  ; If the quotient hits 0, all digits are extracted!
+
+    XOR DX, DX                  ; 🛡️ Clear DX completely before division!
+    DIV CX                      ; AX = Quotient, DX = Remainder (0-9)
+
+    ADD DL, 0X30                ; Convert raw integer remainder to ASCII character
+    MOV BYTE [SLOT_TEMP + SI], DL ; Write character into our temporary scratchpad array
+
+    DEC SI                      ; March backward to the next higher-order text slot
+    JMP .divide_digits
+
+.print_extracted_string:
+    ; 🚀 Echo the extracted digits for this specific slot live onto the viewport screen
+    MOV SI, 0
+.print_loop:
+    MOV AH, 0X0E
+    MOV AL, BYTE [SLOT_TEMP + SI]
+    
+    CMP AL, 0
+    JE .skip_empty_padding      ; Skip unassigned leading empty padding spaces
+    INT 0X10                    ; Echo the character live onto the screen!
+    
+.skip_empty_padding:
+    INC SI
+    CMP SI, 5
+    JB .print_loop
+
+    POP BX                      ; 🛡️ Restore our master TOTAL array index pointer safely
+
+.next_slot:
+    ; Clean out your temporary scratchpad buffer to be completely fresh for the next pass
+    MOV DWORD [SLOT_TEMP], 0
+    MOV BYTE [SLOT_TEMP + 4], 0
+    
+    ; Print a comma or a space between your slot outputs if you want them separated!
+    MOV AH, 0X0E
+    MOV AL, ' '                 
+    INT 0X10
+
+    ADD BX, 2                   ; 🚀 Step over 2 full bytes to align with your DW array track!
+    JMP .slot_loop
+
+.finish_calc:
+    JMP NEWLINE      
+
+
 LOADFILE:
 
 LOADTEXT:
@@ -548,7 +619,7 @@ CURRENT_FILE_TYPE DB 0
 CURRENT_FILES_IN_SYS DB 3
 CURR_OPEN_FILE DW 0
 RANDOM_INDEX DB 0
-INDEX DB 0
+INDEX DW 0
 N DW 'q','q','q','q','1'
 N1 DW 'q','q','q','q','1'
 C DW 0
@@ -557,5 +628,4 @@ COUNT DW 0
 TOTAL DW 0,0,0,0,0
 MOD DW 0
 MH DW 0
-ASCII_TOT DW 0,0,0,0,0
-SLOT_TEMP DB 0,0,0,0,0
+SLOT_TEMP DW 0,0,0,0,0
