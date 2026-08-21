@@ -30,8 +30,9 @@ DECRE:
 DEC BX
 SUB DX, WORD[INDEX]
 MOV WORD[INDEX], DX ;WE FINALLY HAVE THE VALUE WE'LL RAISE TEN TO THE POWER OF AND THEN MULTIPLY EACH DIGIT BY IT :)
-MOV AX,WORD[N+BX]
-MOV  WORD[C], AX
+XOR AX, AX                 
+    MOV AL, BYTE [N + BX]     
+    MOV WORD [C], AX 
 
 CMP WORD[C], 'q'
 JE AD
@@ -62,7 +63,7 @@ MOV AX, WORD[C]
 MUL CX
 MOV WORD[C], AX
 MOV AX, WORD[C]
-MOV WORD[N+BX], AX
+MOV BYTE[N+BX], AL
 JMP AD
 ;UP THERE, I MANAGE THE FIRST NUMBER.
 
@@ -79,8 +80,9 @@ DEC BX
 MOV WORD[INDEX],  BX
 SUB DX, WORD[INDEX]
 MOV WORD[INDEX], DX ;WE FINALLY HAVE THE VALUE WE'LL RAISE TEN TO THE POWER OF AND THEN MULTIPLY EACH DIGIT BY IT :)
-MOV AX,WORD[N1+BX]
-MOV WORD[C1], AX
+XOR AX, AX 
+    MOV AL, BYTE [N1 + BX]      
+    MOV WORD [C1], AX 
 
 CMP WORD[C1], 'q'
 JE AD1
@@ -111,7 +113,7 @@ MOV AX, WORD[C1]
 MUL CX
 MOV WORD[C1], AX
 MOV AX, WORD[C1]
-MOV WORD[N1+BX], AX
+MOV BYTE[N1+BX], AL
 JMP AD1
 
 ;SAMPLE CODE: ADDING THEM
@@ -208,79 +210,97 @@ MOV WORD[MOD],1
 JMP DO
 
 CONV:
-    MOV BX, 0                   ; Start reading from TOTAL slot index 0
+MOV BX, 0
+LOOP_THROUGH_BX:
+MOV AX, WORD[TOTAL+BX]
+CMP AL, 'q'
+JE SETBX_Q
+CMP AL, 0
+JE SETBX0
+CMP AL, 1
+JE SETBX1
+CMP AL, 2
+JE SETBX2
+CMP AL, 3
+JE SETBX3
+CMP AL, 4
+JE SETBX4
+CMP AL, 5
+JE SETBX5
+CMP AL, 6
+JE SETBX6
+CMP AL, 7
+JE SETBX7
+CMP AL, 8
+JE SETBX8
+CMP AL, 9
+JE SETBX9
 
-.slot_loop:
-    CMP BX, 10                  ; 5 word slots * 2 bytes = 10 total bytes limits
-    JAE .finish_calc            ; When all 5 slots are printed, wrap up!
-
-    ; 1. Load the raw dynamic calculation number out of your word slot
-    XOR AX, AX
-    MOV AX, WORD [TOTAL + BX]   ; Pulls the actual calculated value (e.g., 105 or 0)
-    
-    ; 🛡️ QUICK ZERO CHECK: If the slot is exactly 0, just print '0' and move on
-    CMP AX, 0
-    JNE .initialize_division
-    MOV AH, 0X0E
-    MOV AL, '0'
-    INT 0X10
-    JMP .next_slot
-
-.initialize_division:
-    PUSH BX                     ; 🛡️ Save our master TOTAL array index pointer on the stack
-    
-    ; Setup our local temporary string buffer pointer at the far right edge
-    MOV SI, 4                   ; Max 5 digits per slot (indices 0,1,2,3,4)
-    MOV CX, 10                  ; Base-10 division constant
-
-.divide_digits:
-    CMP AX, 0
-    JE .print_extracted_string  ; If the quotient hits 0, all digits are extracted!
-
-    XOR DX, DX                  ; 🛡️ Clear DX completely before division!
-    DIV CX                      ; AX = Quotient, DX = Remainder (0-9)
-
-    ADD DL, 0X30                ; Convert raw integer remainder to ASCII character
-    MOV BYTE [SLOT_TEMP + SI], DL ; Write character into our temporary scratchpad array
-
-    DEC SI                      ; March backward to the next higher-order text slot
-    JMP .divide_digits
-
-.print_extracted_string:
-    ; 🚀 Echo the extracted digits for this specific slot live onto the viewport screen
-    MOV SI, 0
-.print_loop:
-    MOV AH, 0X0E
-    MOV AL, BYTE [SLOT_TEMP + SI]
-    
-    CMP AL, 0
-    JE .skip_empty_padding      ; Skip unassigned leading empty padding spaces
-    INT 0X10                    ; Echo the character live onto the screen!
-    
-.skip_empty_padding:
-    INC SI
-    CMP SI, 5
-    JB .print_loop
-
-    POP BX                      ; 🛡️ Restore our master TOTAL array index pointer safely
-
-.next_slot:
-    ; Clean out your temporary scratchpad buffer to be completely fresh for the next pass
-    MOV DWORD [SLOT_TEMP], 0
-    MOV BYTE [SLOT_TEMP + 4], 0
-    
-    ; Print a comma or a space between your slot outputs if you want them separated!
-    MOV AH, 0X0E
-    MOV AL, ' '                 
-    INT 0X10
-
-    ADD BX, 2                   ; 🚀 Step over 2 full bytes to align with your DW array track!
-    JMP .slot_loop
-
-.finish_calc:
-    JMP NEWLINE      
+SETBX_Q:
+MOV AL, 'q'
+MOV BYTE[TOTAL+BX], AL
+JMP LOOPE
+SETBX0:
+MOV AL, '0'
+MOV BYTE[TOTAL+BX], AL
+JMP LOOPE
+SETBX1:
+MOV AL, '1'
+MOV BYTE[TOTAL+BX], AL
+JMP LOOPE
+SETBX2:
+MOV AL, '2'
+MOV BYTE[TOTAL+BX], AL
+JMP LOOPE
+SETBX3:
+MOV AL, '3'
+MOV BYTE[TOTAL+BX], AL
+JMP LOOPE
+SETBX4:
+MOV AL, '4'
+MOV BYTE[TOTAL+BX], AL
+JMP LOOPE
+SETBX5:
+MOV AL, '5'
+MOV BYTE[TOTAL+BX], AL
+JMP LOOPE
+SETBX6:
+MOV AL, '6'
+MOV BYTE[TOTAL+BX], AL
+JMP LOOPE
+SETBX7:
+MOV AL, '7'
+MOV BYTE[TOTAL+BX], AL
+JMP LOOPE
+SETBX8:
+MOV AL, '8'
+MOV BYTE[TOTAL+BX], AL
+JMP LOOPE
+SETBX9:
+MOV AL, '9'
+MOV BYTE[TOTAL+BX], AL
+JMP LOOPE
 
 
+LOOPE:
+CMP BX, 5
+JB INRC
+JAE LOG_NUM_CONS
+INRC:
+ADD BX, 1
+JMP LOOP_THROUGH_BX
+
+LOG_NUM_CONS:
+MOV BX, 0
+MOV WORD[LEN], 4
+A:
+MOV AH, 0X0E
+MOV AL, BYTE[TOTAL+BX]
+INT 0X10
+ADD BX,1
+CMP BX, WORD[LEN]
+JBE A
+JAE NEWLINE
 LOADFILE:
 
 LOADTEXT:
