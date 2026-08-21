@@ -207,24 +207,25 @@ MOV WORD[MOD],1
 JMP DO
 
 CONV:
-    MOV BX, 0                  
+    MOV BX, 0                   ; Start reading from the very first index slot (0)
 
 .convert_loop:
-    CMP BX, 5
-    JAE NEWLINE       
+    CMP BX, 10                ; 5 slots * 2 bytes each = 10 bytes total limits!
+    JAE NEWLINE                 ; Break out cleanly when done!
 
-
-    XOR AX, AX                  
-    MOV AL, BYTE [TOTAL + BX]  
-    ADD AL, 0x30              
+    ; 🛡️ REGISTER MATCH: Load the clean 2-byte word value out of your new total track
+    XOR CX, CX
+    MOV CX, WORD [TOTAL + BX]   
     
-    MOV AH, 0x0E
-    INT 0x10                   
+    ADD CX, 0X30                ; Convert raw math integer back to display ASCII character
+    
+    MOV AH, 0X0E
+    MOV AL, CL
+    INT 0X10                    ; Echo the digit live onto your screen viewport!
 
 .next_digit:
-    INC BX                     
+    ADD BX, 1                  ; 🚀 CRITICAL STEP: Advance by 2 bytes to catch the next DW slot!
     JMP .convert_loop
-
 
 LOADFILE:
 
@@ -565,11 +566,11 @@ CURRENT_FILES_IN_SYS DB 3
 CURR_OPEN_FILE DW 0
 RANDOM_INDEX DB 0
 INDEX DB 0
-N DB 'q','q','1','0','1'
-N1 DB 'q','q','1','0','1'
+N DW 'q','q','1','0','1'
+N1 DW 'q','q','2','0','1'
 C DW 0
 C1 DW 0
 COUNT DW 0
-TOTAL DB 0,0,0,0,0
+TOTAL DW 0,0,0,0,0
 MOD DW 0
 MH DW 0
